@@ -1,0 +1,14 @@
+[install]
+# Use exact versions for better reproducibility
+exact = true
+
+[install.scopes]
+# Configure any scoped packages if needed
+
+[test]
+# Configure test environment
+preload = ["./test/setup.ts"]
+
+[run]
+# Configure run environment
+bun = true 

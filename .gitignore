@@ -1,0 +1,22 @@
+node_modules
+
+# IDE
+.idea
+.vscode
+
+# Build artifacts
+dist
+build
+
+lambda/node_modules
+lambda/build
+lambda/dist
+
+# TypeScript compiled output
+*.js
+!jest.config.js
+*.js.map
+*.d.ts
+
+# CDK
+cdk.out
