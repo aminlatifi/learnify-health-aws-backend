@@ -4,6 +4,7 @@ import {
   DynamoDBClient,
   PutItemCommand,
   GetItemCommand,
+  QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
@@ -180,18 +181,20 @@ async function getProcessingStatus(
   cityId: string
 ): Promise<APIGatewayProxyResult> {
   try {
-    // Get the latest record for this city
+    // Query for all records with this cityId and get the latest one
     const result = await dynamodb.send(
-      new GetItemCommand({
+      new QueryCommand({
         TableName: process.env.TABLE_NAME,
-        Key: marshall({
-          cityId,
-          timestamp: "latest", // We'll use a special timestamp for the latest record
+        KeyConditionExpression: "cityId = :cityId",
+        ExpressionAttributeValues: marshall({
+          ":cityId": cityId,
         }),
+        ScanIndexForward: false, // Get items in descending order (latest first)
+        Limit: 1, // Get only the latest record
       })
     );
 
-    if (!result.Item) {
+    if (!result.Items || result.Items.length === 0) {
       return createResponse(404, {
         error: "Not Found",
         message: `No processing data found for city ID: ${cityId}`,
@@ -199,7 +202,7 @@ async function getProcessingStatus(
       });
     }
 
-    const data = unmarshall(result.Item) as ProcessingData;
+    const data = unmarshall(result.Items[0]) as ProcessingData;
 
     return createResponse(200, {
       cityId: data.cityId,
