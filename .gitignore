@@ -20,3 +20,8 @@ lambda/dist
 
 # CDK
 cdk.out
+
+# Environment variables
+.env
+.env.local
+.env.*.local

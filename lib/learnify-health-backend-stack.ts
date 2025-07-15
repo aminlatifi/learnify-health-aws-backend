@@ -1,5 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
+import * as dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as sqs from "aws-cdk-lib/aws-sqs";
@@ -9,7 +13,6 @@ import * as logs from "aws-cdk-lib/aws-logs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as sns from "aws-cdk-lib/aws-sns";
-import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 
 export class LearnifyHealthBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -38,6 +41,7 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
     });
 
     // SQS Queue for weather processing
+    // It will have records from the city processor lambda function that will be processed by the weather processor lambda function
     const weatherProcessingQueue = new sqs.Queue(
       this,
       "WeatherProcessingQueue",
@@ -55,6 +59,7 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
     );
 
     // SQS Queue for LLM processing
+
     const llmProcessingQueue = new sqs.Queue(this, "LLMProcessingQueue", {
       queueName: "llm-processing-queue",
       visibilityTimeout: cdk.Duration.seconds(300),
@@ -152,11 +157,12 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
         handler: "weather-processor.handler",
         code: lambda.Code.fromAsset("lambda/build"),
         environment: {
-          WEATHER_QUEUE_URL: weatherProcessingQueue.queueUrl,
+          CITY_QUEUE_URL: cityProcessingQueue.queueUrl,
           LLM_QUEUE_URL: llmProcessingQueue.queueUrl,
           TABLE_NAME: weatherDataTable.tableName,
           NOTIFICATION_TOPIC_ARN: notificationTopic.topicArn,
-          OPENWEATHER_API_KEY: "YOUR_OPENWEATHER_API_KEY", // Set via environment variable
+          OPENWEATHER_API_KEY:
+            process.env.OPENWEATHER_API_KEY || "YOUR_OPENWEATHER_API_KEY", // Set via environment variable
         },
         role: lambdaRole,
         timeout: cdk.Duration.seconds(60),

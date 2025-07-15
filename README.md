@@ -39,16 +39,26 @@ This project implements a sophisticated multi-step processing pipeline:
 1. **Install dependencies:**
 
    ```bash
-   npm install
-   cd lambda && npm install
+   bun install
+   cd lambda && bun install
    ```
 
 2. **Set up environment variables:**
 
+   Create a `.env` file in the root directory:
+
    ```bash
-   export OPENWEATHER_API_KEY="your_openweather_api_key"
-   export OPENAI_API_KEY="your_openai_api_key"
+   # OpenWeather API Configuration
+   OPENWEATHER_API_KEY=your_openweather_api_key_here
+
+   # OpenAI API Configuration (for LLM processing)
+   OPENAI_API_KEY=your_openai_api_key_here
+
+   # AWS Configuration (if needed)
+   AWS_REGION=us-east-1
    ```
+
+   **Important**: Replace `your_openweather_api_key_here` and `your_openai_api_key_here` with your actual API keys.
 
 3. **Bootstrap CDK (first time only):**
 
@@ -58,8 +68,17 @@ This project implements a sophisticated multi-step processing pipeline:
 
 4. **Deploy the infrastructure:**
 
+   **Option 1: Using the deployment script (recommended):**
+
    ```bash
-   npm run deploy
+   ./deploy.sh
+   ```
+
+   **Option 2: Manual deployment:**
+
+   ```bash
+   bun run lambda:build
+   bun run deploy
    ```
 
 5. **Build and test Lambda functions:**

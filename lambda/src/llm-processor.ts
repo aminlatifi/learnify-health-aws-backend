@@ -146,6 +146,8 @@ async function processLLMRecord(record: SQSRecord): Promise<void> {
 async function generateWeatherDescription(
   processingData: ProcessingData
 ): Promise<string> {
+  return `Fake description for ${processingData.cityName}\n`;
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OpenAI API key not configured");

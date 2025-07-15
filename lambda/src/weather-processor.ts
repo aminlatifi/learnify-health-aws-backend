@@ -63,13 +63,13 @@ interface OpenWeatherResponse {
 }
 
 export const handler = async (event: SQSEvent): Promise<void> => {
-  console.log("Weather processor event:", JSON.stringify(event, null, 2));
+  console.log("Weather processor event: ", JSON.stringify(event, null, 2));
 
   for (const record of event.Records) {
     try {
       await processWeatherRecord(record);
     } catch (error) {
-      console.error("Error processing weather record:", error);
+      console.error("Error processing weather record: ", error);
       // Don't delete the message from the queue so it can be retried
     }
   }
@@ -79,7 +79,7 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
   const processingData: ProcessingData = JSON.parse(record.body);
 
   try {
-    console.log("Processing weather data for:", processingData.cityName);
+    console.log("Processing weather data for: ", processingData.cityName);
 
     // Update status to weather_processing
     await updateProcessingStatus(processingData.cityId, "weather_processing");
@@ -142,14 +142,14 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
     // Delete message from queue
     await sqs.send(
       new DeleteMessageCommand({
-        QueueUrl: process.env.WEATHER_QUEUE_URL,
+        QueueUrl: process.env.CITY_QUEUE_URL,
         ReceiptHandle: record.receiptHandle,
       })
     );
 
-    console.log("Weather processing completed for:", processingData.cityName);
+    console.log("Weather processing completed for: ", processingData.cityName);
   } catch (error) {
-    console.error("Error in weather processing:", error);
+    console.error("Error in weather processing: ", error);
 
     // Update status to failed
     await updateProcessingStatus(
@@ -176,7 +176,7 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
     // Delete message from queue to prevent infinite retries
     await sqs.send(
       new DeleteMessageCommand({
-        QueueUrl: process.env.WEATHER_QUEUE_URL,
+        QueueUrl: process.env.CITY_QUEUE_URL,
         ReceiptHandle: record.receiptHandle,
       })
     );
@@ -197,7 +197,7 @@ async function fetchWeatherData(
     location
   )}&appid=${apiKey}&units=metric`;
 
-  console.log("Fetching weather data from:", url);
+  console.log("Fetching weather data from: ", url);
 
   const response = await fetch(url);
 
@@ -259,6 +259,6 @@ async function updateProcessingStatus(
       })
     );
   } catch (error) {
-    console.error("Error updating processing status:", error);
+    console.error("Error updating processing status: ", error);
   }
 }

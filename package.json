@@ -4,7 +4,7 @@
   "description": "AWS Lambda backend with CDK and CodePipeline",
   "main": "lib/app.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && bun run lambda:build",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
@@ -23,6 +23,7 @@
     "aws-cdk": "2.100.0",
     "aws-cdk-lib": "2.100.0",
     "constructs": "^10.0.0",
+    "dotenv": "^17.2.0",
     "jest": "^29.5.0",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.0",
@@ -31,5 +32,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "bun@1.0.0"
+  "packageManager": "bun@^1.0.0"
 }
