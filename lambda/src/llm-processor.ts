@@ -62,7 +62,12 @@ async function processLLMRecord(record: SQSRecord): Promise<void> {
     console.log("Processing LLM data for:", processingData.cityName);
 
     // Update status to llm_processing
-    await updateProcessingStatus(processingData.cityId, "llm_processing");
+    await updateProcessingStatus(
+      processingData.cityId,
+      "llm_processing",
+      undefined,
+      processingData.timestamp
+    );
 
     // Generate description using OpenAI
     const llmDescription = await generateWeatherDescription(processingData);
@@ -102,7 +107,7 @@ async function processLLMRecord(record: SQSRecord): Promise<void> {
     // Delete message from queue
     await sqs.send(
       new DeleteMessageCommand({
-        QueueUrl: process.env.LLM_QUEUE_URL,
+        QueueUrl: process.env.WEATHER_QUEUE_URL,
         ReceiptHandle: record.receiptHandle,
       })
     );
@@ -115,7 +120,8 @@ async function processLLMRecord(record: SQSRecord): Promise<void> {
     await updateProcessingStatus(
       processingData.cityId,
       "failed",
-      error instanceof Error ? error.message : "Unknown error"
+      error instanceof Error ? error.message : "Unknown error",
+      processingData.timestamp
     );
 
     // Send error notification
@@ -136,7 +142,7 @@ async function processLLMRecord(record: SQSRecord): Promise<void> {
     // Delete message from queue to prevent infinite retries
     await sqs.send(
       new DeleteMessageCommand({
-        QueueUrl: process.env.LLM_QUEUE_URL,
+        QueueUrl: process.env.WEATHER_QUEUE_URL,
         ReceiptHandle: record.receiptHandle,
       })
     );
@@ -222,7 +228,8 @@ Make it informative and interesting for someone planning to visit or live in thi
 async function updateProcessingStatus(
   cityId: string,
   status: string,
-  error?: string
+  error?: string,
+  originalTimestamp?: string
 ): Promise<void> {
   try {
     const updateExpression = error
@@ -249,7 +256,7 @@ async function updateProcessingStatus(
         TableName: process.env.TABLE_NAME,
         Key: marshall({
           cityId,
-          timestamp: "latest",
+          timestamp: originalTimestamp || "latest",
         }),
         UpdateExpression: updateExpression,
         ExpressionAttributeNames: expressionAttributeNames,

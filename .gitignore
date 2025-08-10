@@ -25,3 +25,7 @@ cdk.out
 .env
 .env.local
 .env.*.local
+
+
+# MACOS
+.DS_Store

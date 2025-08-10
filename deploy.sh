@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Set node version
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+nvm use
+
 # Load environment variables from .env file
 if [ -f .env ]; then
     echo "Loading environment variables from .env file..."
@@ -20,6 +25,7 @@ fi
 
 echo "Building Lambda functions..."
 bun run lambda:build
+bun run build
 
 echo "Deploying to AWS..."
 bun run deploy

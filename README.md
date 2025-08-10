@@ -28,7 +28,7 @@ This project implements a sophisticated multi-step processing pipeline:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - AWS CLI configured with appropriate permissions
 - AWS CDK CLI installed globally
 - OpenWeather API key
@@ -293,7 +293,7 @@ The following environment variables are required:
 - `TABLE_NAME` - DynamoDB table name
 - `CITY_QUEUE_URL` - City processing queue URL
 - `WEATHER_QUEUE_URL` - Weather processing queue URL
-- `LLM_QUEUE_URL` - LLM processing queue URL
+<!-- - `LLM_QUEUE_URL` - LLM processing queue URL -->
 - `NOTIFICATION_TOPIC_ARN` - SNS topic ARN
 
 ## 🤝 Contributing

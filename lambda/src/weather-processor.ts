@@ -82,7 +82,12 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
     console.log("Processing weather data for: ", processingData.cityName);
 
     // Update status to weather_processing
-    await updateProcessingStatus(processingData.cityId, "weather_processing");
+    await updateProcessingStatus(
+      processingData.cityId,
+      "weather_processing",
+      undefined,
+      processingData.timestamp
+    );
 
     // Fetch weather data from OpenWeather API
     const weatherData = await fetchWeatherData(
@@ -109,7 +114,7 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
     // Send message to LLM processing queue
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl: process.env.LLM_QUEUE_URL,
+        QueueUrl: process.env.WEATHER_QUEUE_URL,
         MessageBody: JSON.stringify(updatedData),
         MessageAttributes: {
           cityId: {
@@ -155,7 +160,8 @@ async function processWeatherRecord(record: SQSRecord): Promise<void> {
     await updateProcessingStatus(
       processingData.cityId,
       "failed",
-      error instanceof Error ? error.message : "Unknown error"
+      error instanceof Error ? error.message : "Unknown error",
+      processingData.timestamp
     );
 
     // Send error notification
@@ -224,7 +230,8 @@ async function fetchWeatherData(
 async function updateProcessingStatus(
   cityId: string,
   status: string,
-  error?: string
+  error?: string,
+  originalTimestamp?: string
 ): Promise<void> {
   try {
     const updateExpression = error
@@ -251,7 +258,7 @@ async function updateProcessingStatus(
         TableName: process.env.TABLE_NAME,
         Key: marshall({
           cityId,
-          timestamp: "latest",
+          timestamp: originalTimestamp || "latest",
         }),
         UpdateExpression: updateExpression,
         ExpressionAttributeNames: expressionAttributeNames,

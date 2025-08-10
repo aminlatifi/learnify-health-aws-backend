@@ -10,8 +10,6 @@ import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as sns from "aws-cdk-lib/aws-sns";
 
 export class LearnifyHealthBackendStack extends cdk.Stack {
@@ -58,19 +56,19 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
       }
     );
 
-    // SQS Queue for LLM processing
+    // // SQS Queue for LLM processing
 
-    const llmProcessingQueue = new sqs.Queue(this, "LLMProcessingQueue", {
-      queueName: "llm-processing-queue",
-      visibilityTimeout: cdk.Duration.seconds(300),
-      retentionPeriod: cdk.Duration.days(14),
-      deadLetterQueue: {
-        queue: new sqs.Queue(this, "LLMProcessingDLQ", {
-          queueName: "llm-processing-dlq",
-        }),
-        maxReceiveCount: 3,
-      },
-    });
+    // const llmProcessingQueue = new sqs.Queue(this, "LLMProcessingQueue", {
+    //   queueName: "llm-processing-queue",
+    //   visibilityTimeout: cdk.Duration.seconds(300),
+    //   retentionPeriod: cdk.Duration.days(14),
+    //   deadLetterQueue: {
+    //     queue: new sqs.Queue(this, "LLMProcessingDLQ", {
+    //       queueName: "llm-processing-dlq",
+    //     }),
+    //     maxReceiveCount: 3,
+    //   },
+    // });
 
     // SNS Topic for notifications
     const notificationTopic = new sns.Topic(this, "WeatherProcessingTopic", {
@@ -100,7 +98,7 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
         resources: [
           cityProcessingQueue.queueArn,
           weatherProcessingQueue.queueArn,
-          llmProcessingQueue.queueArn,
+          // llmProcessingQueue.queueArn,
         ],
       })
     );
@@ -133,7 +131,7 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
       this,
       "CityProcessorFunction",
       {
-        runtime: lambda.Runtime.NODEJS_18_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         handler: "city-processor.handler",
         code: lambda.Code.fromAsset("lambda/build"),
         environment: {
@@ -153,12 +151,12 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
       this,
       "WeatherProcessorFunction",
       {
-        runtime: lambda.Runtime.NODEJS_18_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         handler: "weather-processor.handler",
         code: lambda.Code.fromAsset("lambda/build"),
         environment: {
           CITY_QUEUE_URL: cityProcessingQueue.queueUrl,
-          LLM_QUEUE_URL: llmProcessingQueue.queueUrl,
+          // LLM_QUEUE_URL: llmProcessingQueue.queueUrl,
           TABLE_NAME: weatherDataTable.tableName,
           NOTIFICATION_TOPIC_ARN: notificationTopic.topicArn,
           OPENWEATHER_API_KEY:
@@ -175,11 +173,11 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
       this,
       "LLMProcessorFunction",
       {
-        runtime: lambda.Runtime.NODEJS_18_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         handler: "llm-processor.handler",
         code: lambda.Code.fromAsset("lambda/build"),
         environment: {
-          LLM_QUEUE_URL: llmProcessingQueue.queueUrl,
+          // LLM_QUEUE_URL: llmProcessingQueue.queueUrl,
           TABLE_NAME: weatherDataTable.tableName,
           NOTIFICATION_TOPIC_ARN: notificationTopic.topicArn,
           OPENAI_API_KEY: "YOUR_OPENAI_API_KEY", // Set via environment variable
@@ -190,48 +188,28 @@ export class LearnifyHealthBackendStack extends cdk.Stack {
       }
     );
 
-    // EventBridge rule to trigger weather processor when message arrives in city queue
-    const cityQueueRule = new events.Rule(this, "CityQueueRule", {
-      eventPattern: {
-        source: ["aws.sqs"],
-        detailType: ["AWS API Call via CloudTrail"],
-        detail: {
-          eventSource: ["sqs.amazonaws.com"],
-          eventName: ["SendMessage"],
-          requestParameters: {
-            queueUrl: [cityProcessingQueue.queueUrl],
-          },
-        },
-      },
-    });
-    cityQueueRule.addTarget(
-      new targets.LambdaFunction(weatherProcessorFunction)
+    // SQS Event Source Mapping for weather processor
+    const weatherEventSource = new lambda.EventSourceMapping(
+      this,
+      "WeatherEventSource",
+      {
+        target: weatherProcessorFunction,
+        eventSourceArn: cityProcessingQueue.queueArn,
+        batchSize: 1,
+        maxBatchingWindow: cdk.Duration.seconds(5),
+      }
     );
 
-    // EventBridge rule to trigger LLM processor when message arrives in weather queue
-    const weatherQueueRule = new events.Rule(this, "WeatherQueueRule", {
-      eventPattern: {
-        source: ["aws.sqs"],
-        detailType: ["AWS API Call via CloudTrail"],
-        detail: {
-          eventSource: ["sqs.amazonaws.com"],
-          eventName: ["SendMessage"],
-          requestParameters: {
-            queueUrl: [weatherProcessingQueue.queueUrl],
-          },
-        },
-      },
-    });
-    weatherQueueRule.addTarget(
-      new targets.LambdaFunction(llmProcessorFunction)
-    );
-
-    // Grant permissions for EventBridge to invoke Lambda functions
-    weatherProcessorFunction.grantInvoke(
-      new iam.ServicePrincipal("events.amazonaws.com")
-    );
-    llmProcessorFunction.grantInvoke(
-      new iam.ServicePrincipal("events.amazonaws.com")
+    // SQS Event Source Mapping for LLM processor
+    const llmEventSource = new lambda.EventSourceMapping(
+      this,
+      "LLMEventSource",
+      {
+        target: llmProcessorFunction,
+        eventSourceArn: weatherProcessingQueue.queueArn,
+        batchSize: 1,
+        maxBatchingWindow: cdk.Duration.seconds(5),
+      }
     );
 
     // API Gateway
